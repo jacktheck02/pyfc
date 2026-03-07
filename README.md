@@ -1,6 +1,6 @@
 # clifc (CLI Footbal Club)
 
-A C++ CLI tool that fetches today's soccer matches for Europe's Top 5 leagues from [football-data.org](https://www.football-data.org/) and displays them in your local timezone, grouped by league.
+A C++ CLI tool that fetches today's soccer matches for leagues from [football-data.org](https://www.football-data.org/) and displays them in your local timezone, grouped by league.
 
 ## Prerequisites
 
@@ -51,15 +51,15 @@ The project uses CMake's `FetchContent` to automatically download and link:
 ## Sample Output
 
 ```
-⚽ Today's Top 5 League Matches ⚽
+⚽ Today's Matches ⚽
 =================================
 
-🏆 Premier League
+🏆 Premier League [England]
 -----------------------
 [15:00] Arsenal FC vs Chelsea FC
 [17:30] Manchester City FC vs Liverpool FC
 
-🏆 La Liga
+🏆 La Liga [Spain]
 -----------------------
 [20:00] Real Madrid CF vs FC Barcelona
 ```
