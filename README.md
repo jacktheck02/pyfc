@@ -1,4 +1,4 @@
-# clifc (CLI Footbal Club)
+# clifc (CLI Football Club)
 
 A C++ CLI tool that fetches today's soccer matches for leagues from [football-data.org](https://www.football-data.org/) and displays them in your local timezone, grouped by league.
 
