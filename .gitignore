@@ -1,2 +1,6 @@
-build
-.env
+.coverage
+.venv
+pyfc.egg-info
+__pycache__
+
+FEEDBACK.md
