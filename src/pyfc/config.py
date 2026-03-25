@@ -2,6 +2,7 @@ from pathlib import Path
 import locale
 import getpass
 import os
+import uuid
 
 try:
     locale.setlocale(locale.LC_TIME, "")
@@ -60,7 +61,19 @@ def read_kv_file(path: Path) -> dict:
 
 def write_kv_file(path: Path, data: dict):
     lines = [f"{k}={v}" for k, v in data.items()]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    content = "\n".join(lines) + "\n"
+    tmp_path = path.parent / f".tmp_{uuid.uuid4().hex}"
+    fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 
 def get_football_data_api_key() -> str:
