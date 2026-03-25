@@ -2,6 +2,7 @@ from datetime import datetime
 import sys
 import sqlite3
 
+from pyfc.api import ApiHttpError, ApiUrlError
 from pyfc.cache import init_or_sync_cache
 from pyfc.config import get_football_data_api_key, get_pyfc_cache_path
 from pyfc.display import display_todays_matches
@@ -15,11 +16,18 @@ def main():
     with sqlite3.connect(pyfc_cache_path) as connection:
         connection.row_factory = sqlite3.Row
 
-        init_or_sync_cache(
-            connection=connection,
-            todays_date=todays_date,
-            football_data_api_key=football_data_api_key,
-        )
+        try:
+            init_or_sync_cache(
+                connection=connection,
+                todays_date=todays_date,
+                football_data_api_key=football_data_api_key,
+            )
+        except ApiHttpError as e:
+            print(f"HTTP {e.code}: {e.body}")
+            sys.exit(1)
+        except ApiUrlError as e:
+            print(f"URL Error: {e.reason}")
+            sys.exit(1)
 
         cursor = connection.cursor()
         get_matches_query = """

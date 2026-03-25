@@ -3,7 +3,19 @@ from urllib.error import HTTPError, URLError
 import urllib.request
 from datetime import datetime
 import pyfc.config
-import sys
+
+
+class ApiHttpError(Exception):
+    def __init__(self, code: int, body: str):
+        self.code = code
+        self.body = body
+        super().__init__(f"HTTP {code}: {body}")
+
+
+class ApiUrlError(Exception):
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(f"URL Error: {reason}")
 
 
 def get_matches(
@@ -19,12 +31,8 @@ def get_matches(
         with urllib.request.urlopen(req) as resp:
             matches_data = json.loads(resp.read().decode("utf-8"))
     except HTTPError as e:
-        error_body = e.read().decode("utf-8")
-        print(f"HTTP {e.code}: {error_body}")
-        sys.exit(1)
+        raise ApiHttpError(e.code, e.read().decode("utf-8")) from e
     except URLError as e:
-        print(f"URL Error: {e.reason}")
-        sys.exit(1)
-
+        raise ApiUrlError(str(e.reason)) from e
 
     return matches_data

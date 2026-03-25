@@ -3,11 +3,9 @@ import unittest
 from datetime import datetime
 from unittest.mock import patch, MagicMock
 from urllib.error import HTTPError, URLError
-import contextlib
-from io import StringIO
 
 
-from pyfc.api import get_matches
+from pyfc.api import get_matches, ApiHttpError, ApiUrlError
 
 
 class TestGetMatches(unittest.TestCase):
@@ -29,7 +27,7 @@ class TestGetMatches(unittest.TestCase):
         self.assertEqual(call_args.get_header("X-auth-token"), "test-key")
 
     @patch("pyfc.api.urllib.request.urlopen")
-    def test_http_error_prints(self, mock_urlopen):
+    def test_http_error_raises_api_http_error(self, mock_urlopen):
         error = HTTPError(
             url="http://example.com",
             code=403,
@@ -39,29 +37,22 @@ class TestGetMatches(unittest.TestCase):
         )
         error.read = MagicMock(return_value=b"forbidden")
         mock_urlopen.side_effect = error
-        out = StringIO()
 
-        with self.assertRaises(SystemExit):
-            with contextlib.redirect_stdout(out):
-                get_matches("bad-key", datetime(2026, 3, 20), datetime(2026, 3, 22))
-        
-        
-        self.assertIn('HTTP 403: forbidden\n', out.getvalue())
+        with self.assertRaises(ApiHttpError) as ctx:
+            get_matches("bad-key", datetime(2026, 3, 20), datetime(2026, 3, 22))
+
+        self.assertEqual(ctx.exception.code, 403)
+        self.assertEqual(ctx.exception.body, "forbidden")
 
     @patch("pyfc.api.urllib.request.urlopen")
-    def test_url_error_prints(self, mock_urlopen):
-        error = URLError(
-            reason="Invalid URL"
-        )
+    def test_url_error_raises_api_url_error(self, mock_urlopen):
+        error = URLError(reason="Invalid URL")
         mock_urlopen.side_effect = error
-        out = StringIO()
 
-        with self.assertRaises(SystemExit):
-            with contextlib.redirect_stdout(out):
-                get_matches("key", datetime(2026, 3, 20), datetime(2026, 3, 22))
-        
-        
-        self.assertIn('URL Error: Invalid URL\n', out.getvalue())
+        with self.assertRaises(ApiUrlError) as ctx:
+            get_matches("key", datetime(2026, 3, 20), datetime(2026, 3, 22))
+
+        self.assertEqual(ctx.exception.reason, "Invalid URL")
 
 
 if __name__ == "__main__":
