@@ -3,7 +3,11 @@ import locale
 import getpass
 import os
 
-locale.setlocale(locale.LC_TIME, "")
+try:
+    locale.setlocale(locale.LC_TIME, "")
+except locale.Error:
+    # Fall back to the default locale if the system locale cannot be set
+    pass
 
 FOOTBALL_DATA_BASE_URL = "https://api.football-data.org/"
 
