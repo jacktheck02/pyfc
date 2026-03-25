@@ -1,6 +1,10 @@
 import unittest
+import unittest.mock
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+import os
+import stat
+import tempfile
 
 from pyfc.config import (
     get_pyfc_config_path,
@@ -98,10 +102,30 @@ class TestReadKvFile(unittest.TestCase):
 
 
 class TestWriteKvFile(unittest.TestCase):
-    @patch("pathlib.Path.write_text")
-    def test_writes_key_value_pairs(self, mock_write):
-        write_kv_file(Path("/fake/file.env"), {"A": "1", "B": "2"})
-        mock_write.assert_called_once_with("A=1\nB=2\n", encoding="utf-8")
+    def test_writes_key_value_pairs(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "test.env"
+            write_kv_file(path, {"A": "1", "B": "2"})
+            content = path.read_text(encoding="utf-8")
+            self.assertEqual(content, "A=1\nB=2\n")
+
+    @unittest.skipIf(os.name == "nt", "chmod 0o600 is POSIX-only")
+    def test_sets_restrictive_permissions(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "test.env"
+            write_kv_file(path, {"A": "1"})
+            file_mode = stat.S_IMODE(os.stat(path).st_mode)
+            self.assertEqual(file_mode, 0o600)
+
+    def test_cleans_up_temp_file_on_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "test.env"
+            with unittest.mock.patch("os.replace", side_effect=OSError("fail")):
+                with self.assertRaises(OSError):
+                    write_kv_file(path, {"A": "1"})
+            # No leftover .tmp_ files should remain
+            leftover = list(Path(tmpdir).glob(".tmp_*"))
+            self.assertEqual(leftover, [])
 
 
 class TestGetFootballDataApiKey(unittest.TestCase):
