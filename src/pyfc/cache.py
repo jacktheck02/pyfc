@@ -194,7 +194,7 @@ def init_or_sync_cache(
 
             matches_data = get_matches(
                 football_data_api_key,
-                date_from=last_sync_date + timedelta(days=5),
+                date_from=todays_date - timedelta(days=5),
                 date_to=todays_date + timedelta(days=5),
             )
 
