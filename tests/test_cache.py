@@ -140,7 +140,7 @@ class TestInitOrSyncCache(unittest.TestCase):
         args = mock_get_matches.call_args
         self.assertEqual(
             args.kwargs.get("date_from") or args.args[1],
-            last_sync + timedelta(days=5),
+            today - timedelta(days=5),
         )
 
     @patch("pyfc.cache.get_matches")
