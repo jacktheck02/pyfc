@@ -47,12 +47,12 @@ def read_kv_file(path: Path) -> dict:
     if not path.exists():
         return data
 
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    for line_no, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
         if "=" not in line:
-            raise ValueError
+            raise ValueError(f"Malformed line {line_no} in {path}: {line!r}")
         key, value = line.split("=", 1)
         data[key.strip()] = value.strip()
     return data
