@@ -8,7 +8,7 @@ def utc_to_local_time(utc_time: str) -> datetime:
     return dt_utc.astimezone()
 
 
-def display_todays_matches(matches_data: dict):
+def display_todays_matches(matches_data: dict, date_from: datetime, date_to: datetime):
     leagues = {}
     league_areas = {}
 
@@ -20,10 +20,14 @@ def display_todays_matches(matches_data: dict):
             leagues.setdefault(competition_name, []).append(match)
 
     if len(leagues) == 0:
-        print("No matches today!")
+        print(
+            f"No matches from {date_from.strftime('%Y-%m-%d')} to {date_to.strftime('%Y-%m-%d')}!"
+        )
         return
 
-    print("⚽ Today's Matches ⚽")
+    print(
+        f"⚽ Matches from {date_from.strftime('%Y-%m-%d')} to {date_to.strftime('%Y-%m-%d')} ⚽"
+    )
     print("=================================\n")
 
     for league_name, matches in leagues.items():
@@ -36,5 +40,5 @@ def display_todays_matches(matches_data: dict):
 
             local_time = utc_to_local_time(utc_time)
 
-            print(f"[{local_time.strftime('%X')}] {home_team} vs {away_team}")
+            print(f"[{local_time.strftime('%Y-%m-%d %X')}] {home_team} vs {away_team}")
         print()

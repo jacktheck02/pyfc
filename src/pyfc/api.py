@@ -26,5 +26,4 @@ def get_matches(
         print(f"URL Error: {e.reason}")
         sys.exit(1)
 
-
     return matches_data

@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import sqlite3
 
-
 from pyfc.api import get_matches
 from pyfc.schemas import CREATE_MATCHES_TABLES
 
