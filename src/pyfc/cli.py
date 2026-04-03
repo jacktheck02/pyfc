@@ -5,7 +5,7 @@ import argparse
 
 from pyfc.cache import init_or_sync_cache
 from pyfc.config import get_football_data_api_key, get_pyfc_cache_path
-from pyfc.display import display_todays_matches
+from pyfc.display import display_matches_in_range
 from pyfc.api import get_matches
 
 parser = argparse.ArgumentParser(prog="pyfc", description="", epilog="")
@@ -54,8 +54,8 @@ def _adapt_api_matches_data(api_matches_data: dict) -> dict:
     return adapted_matches_data
 
 
-def main():
-    args = parser.parse_args()
+def main(argv: list[str] | None = None):
+    args = parser.parse_args(argv)
 
     football_data_api_key = get_football_data_api_key()
     todays_date = datetime.now()
@@ -84,7 +84,7 @@ def main():
 
             matches_data = _adapt_api_matches_data(matches_data)
 
-            display_todays_matches(matches_data, date_from, date_to)
+            display_matches_in_range(matches_data, date_from, date_to)
         else:
             get_matches_query = """
                 SELECT m.utc_date, t1.name AS home_team, t2.name AS away_team, c.name AS competition, a.name AS area
@@ -115,7 +115,7 @@ def main():
 
             matches_data = {"matches": [dict(row) for row in today_matches_rows]}
 
-            display_todays_matches(matches_data, date_from, date_to)
+            display_matches_in_range(matches_data, date_from, date_to)
 
 
 if __name__ == "__main__":

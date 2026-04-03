@@ -25,21 +25,21 @@ class TestDisplayTodaysMatches(unittest.TestCase):
     def test_empty_matches_list(self):
         out = StringIO()
         with contextlib.redirect_stdout(out):
-            pyfc.display.display_todays_matches({"matches": []}, DATE_FROM, DATE_TO)
+            pyfc.display.display_matches_in_range({"matches": []}, DATE_FROM, DATE_TO)
 
         self.assertIn("No matches from", out.getvalue())
 
     def test_no_matches_key(self):
         out = StringIO()
         with contextlib.redirect_stdout(out):
-            pyfc.display.display_todays_matches({}, DATE_FROM, DATE_TO)
+            pyfc.display.display_matches_in_range({}, DATE_FROM, DATE_TO)
 
         self.assertIn("No matches from", out.getvalue())
 
     def test_matches_key_not_a_list(self):
         out = StringIO()
         with contextlib.redirect_stdout(out):
-            pyfc.display.display_todays_matches({"matches": "bad"}, DATE_FROM, DATE_TO)
+            pyfc.display.display_matches_in_range({"matches": "bad"}, DATE_FROM, DATE_TO)
 
         self.assertIn("No matches from", out.getvalue())
 
@@ -71,7 +71,7 @@ class TestDisplayTodaysMatches(unittest.TestCase):
         }
         out = StringIO()
         with contextlib.redirect_stdout(out):
-            pyfc.display.display_todays_matches(matches_data, DATE_FROM, DATE_TO)
+            pyfc.display.display_matches_in_range(matches_data, DATE_FROM, DATE_TO)
 
         output = out.getvalue()
         self.assertIn("Matches on", output)
