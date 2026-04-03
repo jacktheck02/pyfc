@@ -44,24 +44,20 @@ class TestGetMatches(unittest.TestCase):
         with self.assertRaises(SystemExit):
             with contextlib.redirect_stdout(out):
                 get_matches("bad-key", datetime(2026, 3, 20), datetime(2026, 3, 22))
-        
-        
-        self.assertIn('HTTP 403: forbidden\n', out.getvalue())
+
+        self.assertIn("HTTP 403: forbidden\n", out.getvalue())
 
     @patch("pyfc.api.urllib.request.urlopen")
     def test_url_error_prints(self, mock_urlopen):
-        error = URLError(
-            reason="Invalid URL"
-        )
+        error = URLError(reason="Invalid URL")
         mock_urlopen.side_effect = error
         out = StringIO()
 
         with self.assertRaises(SystemExit):
             with contextlib.redirect_stdout(out):
                 get_matches("key", datetime(2026, 3, 20), datetime(2026, 3, 22))
-        
-        
-        self.assertIn('URL Error: Invalid URL\n', out.getvalue())
+
+        self.assertIn("URL Error: Invalid URL\n", out.getvalue())
 
 
 if __name__ == "__main__":

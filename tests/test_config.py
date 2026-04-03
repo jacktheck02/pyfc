@@ -1,7 +1,7 @@
 import unittest
 import unittest.mock
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import os
 import stat
 import tempfile
@@ -9,8 +9,8 @@ import tempfile
 from pyfc.config import (
     get_pyfc_config_path,
     get_pyfc_cache_path,
-    read_kv_file,
-    write_kv_file,
+    _read_kv_file,
+    _write_kv_file,
     get_football_data_api_key,
 )
 
@@ -38,6 +38,7 @@ class TestGetPyfcConfigPath(unittest.TestCase):
     @patch.dict("os.environ", {}, clear=False)
     def test_falls_back_to_home_when_xdg_unset(self, mock_mkdir):
         import os
+
         os.environ.pop("XDG_CONFIG_HOME", None)
         result = get_pyfc_config_path()
         self.assertEqual(result, Path.home() / ".config" / "pyfc" / "credentials.env")
@@ -66,6 +67,7 @@ class TestGetPyfcCachePath(unittest.TestCase):
     @patch.dict("os.environ", {}, clear=False)
     def test_falls_back_to_home_when_xdg_unset(self, mock_mkdir):
         import os
+
         os.environ.pop("XDG_CACHE_HOME", None)
         result = get_pyfc_cache_path()
         self.assertEqual(result, Path.home() / ".cache" / "pyfc" / "cache.db")
@@ -73,31 +75,31 @@ class TestGetPyfcCachePath(unittest.TestCase):
 
 class TestReadKvFile(unittest.TestCase):
     def test_returns_empty_dict_when_file_missing(self):
-        result = read_kv_file(Path("/nonexistent/file.env"))
+        result = _read_kv_file(Path("/nonexistent/file.env"))
         self.assertEqual(result, {})
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.read_text", return_value="KEY1=value1\nKEY2=value2\n")
     def test_parses_key_value_pairs(self, mock_read, mock_exists):
-        result = read_kv_file(Path("/fake/file.env"))
+        result = _read_kv_file(Path("/fake/file.env"))
         self.assertEqual(result, {"KEY1": "value1", "KEY2": "value2"})
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.read_text", return_value="# comment\n\nKEY=val\n")
     def test_skips_comments_and_empty_lines(self, mock_read, mock_exists):
-        result = read_kv_file(Path("/fake/file.env"))
+        result = _read_kv_file(Path("/fake/file.env"))
         self.assertEqual(result, {"KEY": "val"})
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.read_text", return_value="INVALID_LINE\n")
     def test_raises_on_missing_equals(self, mock_read, mock_exists):
         with self.assertRaises(ValueError):
-            read_kv_file(Path("/fake/file.env"))
+            _read_kv_file(Path("/fake/file.env"))
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.read_text", return_value="KEY=val=ue\n")
     def test_handles_value_with_equals(self, mock_read, mock_exists):
-        result = read_kv_file(Path("/fake/file.env"))
+        result = _read_kv_file(Path("/fake/file.env"))
         self.assertEqual(result, {"KEY": "val=ue"})
 
 
@@ -105,7 +107,7 @@ class TestWriteKvFile(unittest.TestCase):
     def test_writes_key_value_pairs(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "test.env"
-            write_kv_file(path, {"A": "1", "B": "2"})
+            _write_kv_file(path, {"A": "1", "B": "2"})
             content = path.read_text(encoding="utf-8")
             self.assertEqual(content, "A=1\nB=2\n")
 
@@ -113,7 +115,7 @@ class TestWriteKvFile(unittest.TestCase):
     def test_sets_restrictive_permissions(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "test.env"
-            write_kv_file(path, {"A": "1"})
+            _write_kv_file(path, {"A": "1"})
             file_mode = stat.S_IMODE(os.stat(path).st_mode)
             self.assertEqual(file_mode, 0o600)
 
@@ -122,26 +124,35 @@ class TestWriteKvFile(unittest.TestCase):
             path = Path(tmpdir) / "test.env"
             with unittest.mock.patch("os.replace", side_effect=OSError("fail")):
                 with self.assertRaises(OSError):
-                    write_kv_file(path, {"A": "1"})
+                    _write_kv_file(path, {"A": "1"})
             # No leftover .tmp_ files should remain
             leftover = list(Path(tmpdir).glob(".tmp_*"))
             self.assertEqual(leftover, [])
 
 
 class TestGetFootballDataApiKey(unittest.TestCase):
-    @patch("pyfc.config.write_kv_file")
-    @patch("pyfc.config.read_kv_file", return_value={"FOOTBALL_DATA_API_KEY": "existing-key"})
-    @patch("pyfc.config.get_pyfc_config_path", return_value=Path("/fake/credentials.env"))
+    @patch("pyfc.config._write_kv_file")
+    @patch(
+        "pyfc.config._read_kv_file",
+        return_value={"FOOTBALL_DATA_API_KEY": "existing-key"},
+    )
+    @patch(
+        "pyfc.config.get_pyfc_config_path", return_value=Path("/fake/credentials.env")
+    )
     def test_returns_existing_key(self, mock_path, mock_read, mock_write):
         result = get_football_data_api_key()
         self.assertEqual(result, "existing-key")
         mock_write.assert_not_called()
 
-    @patch("pyfc.config.write_kv_file")
-    @patch("pyfc.config.read_kv_file", return_value={})
-    @patch("pyfc.config.get_pyfc_config_path", return_value=Path("/fake/credentials.env"))
+    @patch("pyfc.config._write_kv_file")
+    @patch("pyfc.config._read_kv_file", return_value={})
+    @patch(
+        "pyfc.config.get_pyfc_config_path", return_value=Path("/fake/credentials.env")
+    )
     @patch("pyfc.config.getpass.getpass", return_value="new-key")
-    def test_prompts_and_stores_new_key(self, mock_getpass, mock_path, mock_read, mock_write):
+    def test_prompts_and_stores_new_key(
+        self, mock_getpass, mock_path, mock_read, mock_write
+    ):
         result = get_football_data_api_key()
         self.assertEqual(result, "new-key")
         mock_write.assert_called_once_with(

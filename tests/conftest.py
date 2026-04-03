@@ -23,6 +23,11 @@ SAMPLE_MATCH = {
         "halfTime": {"home": None, "away": None},
     },
     "referees": [
-        {"id": 300, "name": "Michael Oliver", "type": "REFEREE", "nationality": "England"}
+        {
+            "id": 300,
+            "name": "Michael Oliver",
+            "type": "REFEREE",
+            "nationality": "England",
+        }
     ],
 }

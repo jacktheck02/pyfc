@@ -1,4 +1,4 @@
-# pyfc ⚽
+# pyfc
 
 A command-line tool that displays today's football (soccer) matches right in your terminal. Powered by the [football-data.org](https://www.football-data.org/) API.
 

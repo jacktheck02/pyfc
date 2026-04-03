@@ -5,7 +5,7 @@ from pyfc.api import get_matches
 from pyfc.schemas import CREATE_MATCHES_TABLES
 
 
-def insert_matches_into_cache(
+def _insert_matches_into_cache(
     connection: sqlite3.Connection, matches_data: dict, todays_date: datetime
 ):
     cursor = connection.cursor()
@@ -163,7 +163,7 @@ def init_or_sync_cache(
                 date_to=todays_date + timedelta(days=5),
             )
 
-            insert_matches_into_cache(connection, matches_data, todays_date)
+            _insert_matches_into_cache(connection, matches_data, todays_date)
         else:
             cutoff_date = (todays_date - timedelta(days=5)).strftime("%Y-%m-%d")
             cursor.execute(
@@ -197,4 +197,4 @@ def init_or_sync_cache(
                 date_to=todays_date + timedelta(days=5),
             )
 
-            insert_matches_into_cache(connection, matches_data, todays_date)
+            _insert_matches_into_cache(connection, matches_data, todays_date)

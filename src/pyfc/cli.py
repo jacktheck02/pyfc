@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import sys
 import sqlite3
 import argparse
@@ -13,7 +13,7 @@ parser.add_argument("--date-from", type=str, required=False)
 parser.add_argument("--date-to", type=str, required=False)
 
 
-def assign_date_arguments(
+def _assign_date_arguments(
     args: argparse.Namespace, todays_date: datetime
 ) -> tuple[datetime, datetime]:
     if args.date_from is not None:
@@ -38,7 +38,7 @@ def assign_date_arguments(
     return date_from, date_to
 
 
-def adapt_api_matches_data(api_matches_data: dict) -> dict:
+def _adapt_api_matches_data(api_matches_data: dict) -> dict:
     adapted_matches_data = {"matches": []}
     for match in api_matches_data["matches"]:
         adapted_matches_data["matches"].append(
@@ -60,7 +60,7 @@ def main():
     football_data_api_key = get_football_data_api_key()
     todays_date = datetime.now()
 
-    date_from, date_to = assign_date_arguments(args, todays_date)
+    date_from, date_to = _assign_date_arguments(args, todays_date)
 
     pyfc_cache_path = get_pyfc_cache_path()
     with sqlite3.connect(pyfc_cache_path) as connection:
@@ -82,7 +82,7 @@ def main():
                 date_to=date_to,
             )
 
-            matches_data = adapt_api_matches_data(matches_data)
+            matches_data = _adapt_api_matches_data(matches_data)
 
             display_todays_matches(matches_data, date_from, date_to)
         else:
@@ -96,8 +96,21 @@ def main():
                 WHERE m.utc_date >= ? AND m.utc_date < ?
                 ORDER BY m.utc_date ASC
             """
+            local_tz = todays_date.astimezone().tzinfo
+            date_from_utc = date_from.replace(
+                hour=0, minute=0, second=0, microsecond=0, tzinfo=local_tz
+            ).astimezone(timezone.utc)
+            date_to_utc = date_to.replace(
+                hour=0, minute=0, second=0, microsecond=0, tzinfo=local_tz
+            ).astimezone(timezone.utc)
 
-            cursor.execute(get_matches_query, (date_from, date_to))
+            cursor.execute(
+                get_matches_query,
+                (
+                    date_from_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    date_to_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ),
+            )
             today_matches_rows = cursor.fetchall()
 
             matches_data = {"matches": [dict(row) for row in today_matches_rows]}
