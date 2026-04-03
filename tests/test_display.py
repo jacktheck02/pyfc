@@ -4,16 +4,19 @@ from datetime import datetime, timezone
 import contextlib
 import pyfc.display
 
+DATE_FROM = datetime(2026, 3, 20, tzinfo=timezone.utc)
+DATE_TO = datetime(2026, 3, 21, tzinfo=timezone.utc)
+
 
 class TestUtcToLocalTime(unittest.TestCase):
     def test_returns_aware_datetime(self):
-        result = pyfc.display.utc_to_local_time("2026-03-20T14:00:00Z")
+        result = pyfc.display._utc_to_local_time("2026-03-20T14:00:00Z")
 
         self.assertIsInstance(result, datetime)
         self.assertIsNotNone(result.tzinfo)
 
     def test_correct_utc_value(self):
-        result = pyfc.display.utc_to_local_time("2026-03-20T14:00:00Z")
+        result = pyfc.display._utc_to_local_time("2026-03-20T14:00:00Z")
         expected_utc = datetime(2026, 3, 20, 14, 0, 0, tzinfo=timezone.utc)
         self.assertEqual(result, expected_utc.astimezone())
 
@@ -22,23 +25,23 @@ class TestDisplayTodaysMatches(unittest.TestCase):
     def test_empty_matches_list(self):
         out = StringIO()
         with contextlib.redirect_stdout(out):
-            pyfc.display.display_todays_matches({"matches": []})
+            pyfc.display.display_matches_in_range({"matches": []}, DATE_FROM, DATE_TO)
 
-        self.assertIn("No matches today!", out.getvalue())
+        self.assertIn("No matches from", out.getvalue())
 
     def test_no_matches_key(self):
         out = StringIO()
         with contextlib.redirect_stdout(out):
-            pyfc.display.display_todays_matches({})
+            pyfc.display.display_matches_in_range({}, DATE_FROM, DATE_TO)
 
-        self.assertIn("No matches today!", out.getvalue())
+        self.assertIn("No matches from", out.getvalue())
 
     def test_matches_key_not_a_list(self):
         out = StringIO()
         with contextlib.redirect_stdout(out):
-            pyfc.display.display_todays_matches({"matches": "bad"})
+            pyfc.display.display_matches_in_range({"matches": "bad"}, DATE_FROM, DATE_TO)
 
-        self.assertIn("No matches today!", out.getvalue())
+        self.assertIn("No matches from", out.getvalue())
 
     def test_displays_matches_grouped_by_league(self):
         matches_data = {
@@ -68,10 +71,10 @@ class TestDisplayTodaysMatches(unittest.TestCase):
         }
         out = StringIO()
         with contextlib.redirect_stdout(out):
-            pyfc.display.display_todays_matches(matches_data)
+            pyfc.display.display_matches_in_range(matches_data, DATE_FROM, DATE_TO)
 
         output = out.getvalue()
-        self.assertIn("Today's Matches", output)
+        self.assertIn("Matches on", output)
         self.assertIn("Premier League", output)
         self.assertIn("England", output)
         self.assertIn("Arsenal vs Chelsea", output)

@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-from pyfc.cache import insert_matches_into_cache, init_or_sync_cache
+from pyfc.cache import _insert_matches_into_cache, init_or_sync_cache
 from pyfc.schemas import CREATE_MATCHES_TABLES
 from conftest import SAMPLE_MATCH
 
@@ -26,7 +26,7 @@ class TestInsertMatchesIntoCache(unittest.TestCase):
         matches_data = {"matches": [SAMPLE_MATCH]}
         today = datetime(2026, 3, 20)
 
-        insert_matches_into_cache(self.conn, matches_data, today)
+        _insert_matches_into_cache(self.conn, matches_data, today)
 
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM areas WHERE area_id = 1")
@@ -61,7 +61,7 @@ class TestInsertMatchesIntoCache(unittest.TestCase):
         matches_data = {"matches": []}
         today = datetime(2026, 3, 20)
 
-        insert_matches_into_cache(self.conn, matches_data, today)
+        _insert_matches_into_cache(self.conn, matches_data, today)
 
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM matches")
@@ -72,7 +72,7 @@ class TestInsertMatchesIntoCache(unittest.TestCase):
         matches_data = {"matches": [match]}
         today = datetime(2026, 3, 20)
 
-        insert_matches_into_cache(self.conn, matches_data, today)
+        _insert_matches_into_cache(self.conn, matches_data, today)
 
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM referees")
@@ -84,7 +84,7 @@ class TestInsertMatchesIntoCache(unittest.TestCase):
         matches_data = {"matches": [match]}
         today = datetime(2026, 3, 20)
 
-        insert_matches_into_cache(self.conn, matches_data, today)
+        _insert_matches_into_cache(self.conn, matches_data, today)
 
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM matches WHERE match_id = 100")
