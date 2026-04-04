@@ -43,6 +43,32 @@ class TestGetPyfcConfigPath(unittest.TestCase):
         result = get_pyfc_config_path()
         self.assertEqual(result, Path.home() / ".config" / "pyfc" / "credentials.env")
 
+    @patch("pyfc.config.Path.mkdir")
+    @patch("pyfc.config.sys")
+    def test_uses_appdata_on_windows(self, mock_sys, mock_mkdir):
+        mock_sys.platform = "win32"
+        with patch.dict(
+            "os.environ", {"APPDATA": "C:\\Users\\test\\AppData\\Roaming"}, clear=False
+        ):
+            result = get_pyfc_config_path()
+        self.assertEqual(
+            result, Path("C:\\Users\\test\\AppData\\Roaming/pyfc/credentials.env")
+        )
+
+    @patch("pyfc.config.Path.mkdir")
+    @patch("pyfc.config.sys")
+    def test_uses_library_on_macos(self, mock_sys, mock_mkdir):
+        mock_sys.platform = "darwin"
+        result = get_pyfc_config_path()
+        self.assertEqual(
+            result,
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "pyfc"
+            / "credentials.env",
+        )
+
 
 class TestGetPyfcCachePath(unittest.TestCase):
     @patch("pyfc.config.Path.mkdir")
@@ -71,6 +97,40 @@ class TestGetPyfcCachePath(unittest.TestCase):
         os.environ.pop("XDG_CACHE_HOME", None)
         result = get_pyfc_cache_path()
         self.assertEqual(result, Path.home() / ".cache" / "pyfc" / "cache.db")
+
+    @patch("pyfc.config.Path.mkdir")
+    @patch("pyfc.config.sys")
+    def test_uses_localappdata_on_windows(self, mock_sys, mock_mkdir):
+        mock_sys.platform = "win32"
+        with patch.dict(
+            "os.environ",
+            {"LOCALAPPDATA": "C:\\Users\\test\\AppData\\Local"},
+            clear=False,
+        ):
+            result = get_pyfc_cache_path()
+        self.assertEqual(result, Path("C:\\Users\\test\\AppData\\Local/pyfc/cache.db"))
+
+    @patch("pyfc.config.Path.mkdir")
+    @patch("pyfc.config.sys")
+    def test_falls_back_to_appdata_on_windows(self, mock_sys, mock_mkdir):
+        mock_sys.platform = "win32"
+        with patch.dict(
+            "os.environ", {"APPDATA": "C:\\Users\\test\\AppData\\Roaming"}, clear=False
+        ):
+            os.environ.pop("LOCALAPPDATA", None)
+            result = get_pyfc_cache_path()
+        self.assertEqual(
+            result, Path("C:\\Users\\test\\AppData\\Roaming/pyfc/cache.db")
+        )
+
+    @patch("pyfc.config.Path.mkdir")
+    @patch("pyfc.config.sys")
+    def test_uses_library_caches_on_macos(self, mock_sys, mock_mkdir):
+        mock_sys.platform = "darwin"
+        result = get_pyfc_cache_path()
+        self.assertEqual(
+            result, Path.home() / "Library" / "Caches" / "pyfc" / "cache.db"
+        )
 
 
 class TestReadKvFile(unittest.TestCase):

@@ -16,7 +16,9 @@ def _ordinal(n: int) -> str:
     return f"{n}{suffix}"
 
 
-def display_matches_in_range(matches_data: dict, date_from: datetime, date_to: datetime):
+def display_matches_in_range(
+    matches_data: dict, date_from: datetime, date_to: datetime
+):
     dates: dict = {}
     league_areas: dict = {}
 
@@ -42,11 +44,11 @@ def display_matches_in_range(matches_data: dict, date_from: datetime, date_to: d
         day_name = date_key.strftime("%A")
         month_name = date_key.strftime("%B")
         day_ord = _ordinal(date_key.day)
-        print(f"⚽ Matches on {day_name} {month_name} {day_ord}, {date_key.year} ⚽")
+        print(f"Matches on {day_name} {month_name} {day_ord}, {date_key.year}")
         print("================================================")
         for league_name in sorted(leagues):
             matches = leagues[league_name]
-            print(f"🏆 {league_name} [{league_areas[league_name]}]")
+            print(f"{league_name} [{league_areas[league_name]}]")
             print("------------------------------------------------")
             for match in matches:
                 home_team = match["home_team"]

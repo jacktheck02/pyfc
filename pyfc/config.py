@@ -2,6 +2,7 @@ from pathlib import Path
 import locale
 import getpass
 import os
+import sys
 import uuid
 
 try:
@@ -35,7 +36,10 @@ def _write_kv_file(path: Path, data: dict):
     lines = [f"{k}={v}" for k, v in data.items()]
     content = "\n".join(lines) + "\n"
     tmp_path = path.parent / f".tmp_{uuid.uuid4().hex}"
-    fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    if sys.platform != "win32":
+        fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    else:
+        fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)
@@ -64,11 +68,13 @@ def get_football_data_api_key() -> str:
 
 
 def get_pyfc_config_path() -> Path:
-    xdg_config_path = os.environ.get("XDG_CONFIG_HOME")
-    if xdg_config_path is None or len(xdg_config_path.strip()) == 0:
-        base_path = Path.home() / ".config"
-    else:
-        base_path = Path(xdg_config_path).expanduser()
+    if sys.platform == "win32":
+        base_path = Path(os.environ.get("APPDATA", Path.home()))
+    elif sys.platform == "darwin":
+        base_path = Path.home() / "Library" / "Application Support"
+    else:  # Linux / XDG
+        xdg = os.environ.get("XDG_CONFIG_HOME", "").strip()
+        base_path = Path(xdg).expanduser() if xdg else Path.home() / ".config"
 
     config_path = base_path / "pyfc"
     config_path.mkdir(parents=True, exist_ok=True)
@@ -79,11 +85,15 @@ def get_pyfc_config_path() -> Path:
 
 
 def get_pyfc_cache_path() -> Path:
-    xdg_cache_path = os.environ.get("XDG_CACHE_HOME")
-    if xdg_cache_path is None or len(xdg_cache_path.strip()) == 0:
-        base_path = Path.home() / ".cache"
+    if sys.platform == "win32":
+        base_path = Path(
+            os.environ.get("LOCALAPPDATA", os.environ.get("APPDATA", Path.home()))
+        )
+    elif sys.platform == "darwin":
+        base_path = Path.home() / "Library" / "Caches"
     else:
-        base_path = Path(xdg_cache_path).expanduser()
+        xdg = os.environ.get("XDG_CACHE_HOME", "").strip()
+        base_path = Path(xdg).expanduser() if xdg else Path.home() / ".cache"
 
     cache_path = base_path / "pyfc"
     cache_path.mkdir(parents=True, exist_ok=True)
