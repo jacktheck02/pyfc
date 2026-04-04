@@ -10,14 +10,12 @@ def _insert_matches_into_cache(
 ):
     cursor = connection.cursor()
     for match in matches_data.get("matches", []):
-        # insert area
         area = match["area"]
         cursor.execute(
             "INSERT OR REPLACE INTO areas (area_id, name, code) VALUES (?, ?, ?)",
             (area["id"], area["name"], area.get("code")),
         )
 
-        # insert competition
         competition = match["competition"]
         cursor.execute(
             "INSERT OR REPLACE INTO competitions (competition_id, area_id, name, code, type) VALUES (?, ?, ?, ?, ?)",
@@ -30,7 +28,6 @@ def _insert_matches_into_cache(
             ),
         )
 
-        # insert season
         season = match["season"]
         cursor.execute(
             "INSERT OR REPLACE INTO seasons (season_id, competition_id, start_date, end_date, current_matchday, winner) VALUES (?, ?, ?, ?, ?, ?)",
@@ -44,7 +41,6 @@ def _insert_matches_into_cache(
             ),
         )
 
-        # insert teams
         home_team = match["homeTeam"]
         away_team = match["awayTeam"]
 
@@ -68,7 +64,6 @@ def _insert_matches_into_cache(
             ),
         )
 
-        # insert match
         cursor.execute(
             "INSERT OR REPLACE INTO matches (match_id, area_id, competition_id, season_id, home_team_id, away_team_id, utc_date, status, matchday, stage, group_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
@@ -86,7 +81,6 @@ def _insert_matches_into_cache(
             ),
         )
 
-        # insert scores
         score = match["score"]
         cursor.execute(
             "INSERT OR REPLACE INTO scores (match_id, winner, duration, full_time_home, full_time_away, half_time_home, half_time_away) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -101,7 +95,6 @@ def _insert_matches_into_cache(
             ),
         )
 
-        # insert referees
         for referee in match.get("referees", []):
             cursor.execute(
                 "INSERT OR REPLACE INTO referees (referee_id, name, type, nationality) VALUES (?, ?, ?, ?)",

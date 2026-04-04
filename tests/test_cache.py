@@ -198,7 +198,7 @@ class TestInitOrSyncCache(unittest.TestCase):
         )
 
     @patch("pyfc.cache.get_matches")
-    def test_no_sync_at_exactly_24_hours_boundary(self, mock_get_matches):
+    def test_sync_at_exactly_24_hours_boundary(self, mock_get_matches):
         """Last sync exactly 24 hours ago => should trigger sync."""
         mock_get_matches.return_value = {"matches": []}
         today = datetime(2026, 3, 20, 12, 0, 0)
