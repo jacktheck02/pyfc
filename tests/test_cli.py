@@ -1,14 +1,104 @@
 import unittest
 import sqlite3
-import runpy
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
 
-from pyfc.cli import main
+from pyfc.cli import main, _assign_date_arguments, _adapt_api_matches_data, parser
+
+
+class TestAssignDateArguments(unittest.TestCase):
+    def setUp(self):
+        self.todays_date = datetime(2026, 4, 3)
+
+    def test_invalid_date_from_format(self):
+        args = parser.parse_args(["--date-from", "not-a-date"])
+        with self.assertRaises(SystemExit):
+            _assign_date_arguments(args, self.todays_date)
+
+    def test_invalid_date_to_format(self):
+        args = parser.parse_args(["--date-to", "2026-13-45"])
+        with self.assertRaises(SystemExit):
+            _assign_date_arguments(args, self.todays_date)
+
+    def test_date_from_after_date_to(self):
+        args = parser.parse_args(
+            ["--date-from", "2026-04-10", "--date-to", "2026-04-01"]
+        )
+        with self.assertRaises(SystemExit):
+            _assign_date_arguments(args, self.todays_date)
+
+    def test_defaults_to_today(self):
+        args = parser.parse_args([])
+        date_from, date_to = _assign_date_arguments(args, self.todays_date)
+        self.assertEqual(date_from, self.todays_date)
+        self.assertEqual(date_to, self.todays_date + timedelta(hours=24))
+
+    def test_valid_custom_dates(self):
+        args = parser.parse_args(
+            ["--date-from", "2026-04-01", "--date-to", "2026-04-05"]
+        )
+        date_from, date_to = _assign_date_arguments(args, self.todays_date)
+        self.assertEqual(date_from, datetime(2026, 4, 1))
+        self.assertEqual(date_to, datetime(2026, 4, 5))
+
+
+class TestAdaptApiMatchesData(unittest.TestCase):
+    def test_adapts_single_match(self):
+        api_data = {
+            "matches": [
+                {
+                    "utcDate": "2026-04-03T15:00:00Z",
+                    "homeTeam": {"name": "Arsenal"},
+                    "awayTeam": {"name": "Chelsea"},
+                    "competition": {"name": "Premier League"},
+                    "area": {"name": "England"},
+                }
+            ]
+        }
+        result = _adapt_api_matches_data(api_data)
+        self.assertEqual(len(result["matches"]), 1)
+        self.assertEqual(result["matches"][0]["home_team"], "Arsenal")
+        self.assertEqual(result["matches"][0]["away_team"], "Chelsea")
+        self.assertEqual(result["matches"][0]["competition"], "Premier League")
+        self.assertEqual(result["matches"][0]["area"], "England")
+        self.assertEqual(result["matches"][0]["utc_date"], "2026-04-03T15:00:00Z")
+
+    def test_adapts_empty_matches(self):
+        result = _adapt_api_matches_data({"matches": []})
+        self.assertEqual(result, {"matches": []})
+
+
+class TestMainApiFetchBranch(unittest.TestCase):
+    @patch("pyfc.cli.display_matches_in_range")
+    @patch("pyfc.cli.get_matches")
+    @patch("pyfc.cli.init_or_sync_cache")
+    @patch("pyfc.cli.get_pyfc_cache_path", return_value=":memory:")
+    @patch("pyfc.cli.get_football_data_api_key", return_value="test-key")
+    def test_api_branch_when_dates_far_from_today(
+        self, mock_key, mock_cache_path, mock_sync, mock_get_matches, mock_display
+    ):
+        mock_get_matches.return_value = {
+            "matches": [
+                {
+                    "utcDate": "2026-05-01T18:00:00Z",
+                    "homeTeam": {"name": "Liverpool"},
+                    "awayTeam": {"name": "Man City"},
+                    "competition": {"name": "Premier League"},
+                    "area": {"name": "England"},
+                }
+            ]
+        }
+
+        main(["--date-from", "2026-05-01", "--date-to", "2026-05-10"])
+
+        mock_get_matches.assert_called_once()
+        mock_display.assert_called_once()
+        called_data = mock_display.call_args[0][0]
+        self.assertEqual(called_data["matches"][0]["home_team"], "Liverpool")
 
 
 class TestMain(unittest.TestCase):
-    @patch("pyfc.cli.display_todays_matches")
+    @patch("pyfc.cli.display_matches_in_range")
     @patch("pyfc.cli.init_or_sync_cache")
     @patch("pyfc.cli.get_pyfc_cache_path")
     @patch("pyfc.cli.get_football_data_api_key", return_value="test-key")
@@ -45,7 +135,7 @@ class TestMain(unittest.TestCase):
             mock_connect.return_value.__enter__ = MagicMock(return_value=conn)
             mock_connect.return_value.__exit__ = MagicMock(return_value=False)
 
-            main()
+            main([])
 
         mock_sync.assert_called_once()
         mock_display.assert_called_once()
@@ -55,17 +145,6 @@ class TestMain(unittest.TestCase):
         self.assertEqual(called_data["matches"][0]["home_team"], "Arsenal")
 
         conn.close()
-
-    @patch("pyfc.cli.display_todays_matches")
-    @patch("pyfc.cli.init_or_sync_cache")
-    @patch("pyfc.cli.get_pyfc_cache_path", return_value=":memory:")
-    @patch("pyfc.cli.get_football_data_api_key", return_value=None)
-    def test_main_module_entry_point(
-        self, mock_key, mock_cache, mock_sync, mock_display
-    ):
-        with patch("pyfc.cli.sys.exit") as mock_exit:
-            runpy.run_module("pyfc.cli", run_name="__main__", alter_sys=False)
-            mock_exit.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from pyfc.cache import _insert_matches_into_cache, init_or_sync_cache
 from pyfc.schemas import CREATE_MATCHES_TABLES
-from conftest import SAMPLE_MATCH
+from tests.conftest import SAMPLE_MATCH
 
 
 def _create_tables(conn):
@@ -50,7 +50,9 @@ class TestInsertMatchesIntoCache(unittest.TestCase):
         cursor.execute("SELECT * FROM referees WHERE referee_id = 300")
         self.assertIsNotNone(cursor.fetchone())
 
-        cursor.execute("SELECT * FROM match_referees WHERE match_id = 100 AND referee_id = 300")
+        cursor.execute(
+            "SELECT * FROM match_referees WHERE match_id = 100 AND referee_id = 300"
+        )
         self.assertIsNotNone(cursor.fetchone())
 
         cursor.execute("SELECT value FROM cache_meta WHERE key = 'last_full_sync'")
@@ -111,8 +113,12 @@ class TestInitOrSyncCache(unittest.TestCase):
         args = mock_get_matches.call_args
         self.assertEqual(args.args[0], "api-key")
         # date_from = today - 5 days, date_to = today + 5 days
-        self.assertEqual(args.kwargs.get("date_from") or args.args[1], today - timedelta(days=5))
-        self.assertEqual(args.kwargs.get("date_to") or args.args[2], today + timedelta(days=5))
+        self.assertEqual(
+            args.kwargs.get("date_from") or args.args[1], today - timedelta(days=5)
+        )
+        self.assertEqual(
+            args.kwargs.get("date_to") or args.args[2], today + timedelta(days=5)
+        )
 
     @patch("pyfc.cache.get_matches")
     def test_sync_within_ten_days(self, mock_get_matches):
@@ -190,6 +196,92 @@ class TestInitOrSyncCache(unittest.TestCase):
             args.kwargs.get("date_from") or args.args[1],
             today - timedelta(days=5),
         )
+
+    @patch("pyfc.cache.get_matches")
+    def test_sync_at_exactly_24_hours_boundary(self, mock_get_matches):
+        """Last sync exactly 24 hours ago => should trigger sync."""
+        mock_get_matches.return_value = {"matches": []}
+        today = datetime(2026, 3, 20, 12, 0, 0)
+
+        init_or_sync_cache(self.conn, today, "api-key")
+        mock_get_matches.reset_mock()
+
+        last_sync = today - timedelta(hours=24)
+        self.conn.execute(
+            "INSERT OR REPLACE INTO cache_meta (key, value, updated_at) VALUES ('last_full_sync', ?, ?)",
+            (last_sync.strftime("%Y-%m-%d"), datetime.now().isoformat()),
+        )
+        self.conn.commit()
+
+        mock_get_matches.return_value = {"matches": []}
+        init_or_sync_cache(self.conn, today, "api-key")
+
+        mock_get_matches.assert_called_once()
+
+    @patch("pyfc.cache.get_matches")
+    def test_no_sync_when_last_sync_is_same_day(self, mock_get_matches):
+        """Last sync same calendar day => no API call (day-level granularity)."""
+        mock_get_matches.return_value = {"matches": []}
+        today = datetime(2026, 3, 20, 18, 0, 0)
+
+        init_or_sync_cache(self.conn, today, "api-key")
+        mock_get_matches.reset_mock()
+
+        # Set last_full_sync to same date (earlier in the day)
+        self.conn.execute(
+            "INSERT OR REPLACE INTO cache_meta (key, value, updated_at) VALUES ('last_full_sync', ?, ?)",
+            (today.strftime("%Y-%m-%d"), datetime.now().isoformat()),
+        )
+        self.conn.commit()
+
+        init_or_sync_cache(self.conn, today, "api-key")
+        mock_get_matches.assert_not_called()
+
+    @patch("pyfc.cache.get_matches")
+    def test_full_purge_at_exactly_10_days(self, mock_get_matches):
+        """Last sync exactly 10 days ago => full purge path."""
+        mock_get_matches.return_value = {"matches": [SAMPLE_MATCH]}
+        today = datetime(2026, 3, 20)
+
+        init_or_sync_cache(self.conn, today, "api-key")
+        mock_get_matches.reset_mock()
+
+        last_sync = today - timedelta(days=10)
+        self.conn.execute(
+            "INSERT OR REPLACE INTO cache_meta (key, value, updated_at) VALUES ('last_full_sync', ?, ?)",
+            (last_sync.strftime("%Y-%m-%d"), datetime.now().isoformat()),
+        )
+        self.conn.commit()
+
+        mock_get_matches.return_value = {"matches": [SAMPLE_MATCH]}
+        init_or_sync_cache(self.conn, today, "api-key")
+
+        mock_get_matches.assert_called_once()
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM matches")
+        rows = cursor.fetchall()
+        self.assertEqual(len(rows), 1)
+
+    @patch("pyfc.cache.get_matches")
+    def test_incremental_sync_at_9_days(self, mock_get_matches):
+        """Last sync 9 days ago => incremental sync (not full purge)."""
+        mock_get_matches.return_value = {"matches": [SAMPLE_MATCH]}
+        today = datetime(2026, 3, 20)
+
+        init_or_sync_cache(self.conn, today, "api-key")
+        mock_get_matches.reset_mock()
+
+        last_sync = today - timedelta(days=9)
+        self.conn.execute(
+            "INSERT OR REPLACE INTO cache_meta (key, value, updated_at) VALUES ('last_full_sync', ?, ?)",
+            (last_sync.strftime("%Y-%m-%d"), datetime.now().isoformat()),
+        )
+        self.conn.commit()
+
+        mock_get_matches.return_value = {"matches": [SAMPLE_MATCH]}
+        init_or_sync_cache(self.conn, today, "api-key")
+
+        mock_get_matches.assert_called_once()
 
 
 if __name__ == "__main__":
