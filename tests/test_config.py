@@ -16,29 +16,37 @@ from pyfc.config import (
 
 
 class TestGetPyfcConfigPath(unittest.TestCase):
+    @patch("pyfc.config.sys")
     @patch("pyfc.config.Path.mkdir")
     @patch.dict("os.environ", {"XDG_CONFIG_HOME": "/tmp/test_xdg_config"}, clear=False)
-    def test_uses_xdg_config_home_when_set(self, mock_mkdir):
+    def test_uses_xdg_config_home_when_set(self, mock_mkdir, mock_sys):
+        mock_sys.platform = "linux"
         result = get_pyfc_config_path()
         self.assertEqual(result, Path("/tmp/test_xdg_config/pyfc/credentials.env"))
 
+    @patch("pyfc.config.sys")
     @patch("pyfc.config.Path.mkdir")
     @patch.dict("os.environ", {"XDG_CONFIG_HOME": ""}, clear=False)
-    def test_falls_back_to_home_when_xdg_empty(self, mock_mkdir):
+    def test_falls_back_to_home_when_xdg_empty(self, mock_mkdir, mock_sys):
+        mock_sys.platform = "linux"
         result = get_pyfc_config_path()
         self.assertEqual(result, Path.home() / ".config" / "pyfc" / "credentials.env")
 
+    @patch("pyfc.config.sys")
     @patch("pyfc.config.Path.mkdir")
     @patch.dict("os.environ", {"XDG_CONFIG_HOME": "   "}, clear=False)
-    def test_falls_back_to_home_when_xdg_whitespace(self, mock_mkdir):
+    def test_falls_back_to_home_when_xdg_whitespace(self, mock_mkdir, mock_sys):
+        mock_sys.platform = "linux"
         result = get_pyfc_config_path()
         self.assertEqual(result, Path.home() / ".config" / "pyfc" / "credentials.env")
 
+    @patch("pyfc.config.sys")
     @patch("pyfc.config.Path.mkdir")
     @patch.dict("os.environ", {}, clear=False)
-    def test_falls_back_to_home_when_xdg_unset(self, mock_mkdir):
+    def test_falls_back_to_home_when_xdg_unset(self, mock_mkdir, mock_sys):
         import os
 
+        mock_sys.platform = "linux"
         os.environ.pop("XDG_CONFIG_HOME", None)
         result = get_pyfc_config_path()
         self.assertEqual(result, Path.home() / ".config" / "pyfc" / "credentials.env")
@@ -71,29 +79,37 @@ class TestGetPyfcConfigPath(unittest.TestCase):
 
 
 class TestGetPyfcCachePath(unittest.TestCase):
+    @patch("pyfc.config.sys")
     @patch("pyfc.config.Path.mkdir")
     @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/test_xdg_cache"}, clear=False)
-    def test_uses_xdg_cache_home_when_set(self, mock_mkdir):
+    def test_uses_xdg_cache_home_when_set(self, mock_mkdir, mock_sys):
+        mock_sys.platform = "linux"
         result = get_pyfc_cache_path()
         self.assertEqual(result, Path("/tmp/test_xdg_cache/pyfc/cache.db"))
 
+    @patch("pyfc.config.sys")
     @patch("pyfc.config.Path.mkdir")
     @patch.dict("os.environ", {"XDG_CACHE_HOME": ""}, clear=False)
-    def test_falls_back_to_home_when_xdg_empty(self, mock_mkdir):
+    def test_falls_back_to_home_when_xdg_empty(self, mock_mkdir, mock_sys):
+        mock_sys.platform = "linux"
         result = get_pyfc_cache_path()
         self.assertEqual(result, Path.home() / ".cache" / "pyfc" / "cache.db")
 
+    @patch("pyfc.config.sys")
     @patch("pyfc.config.Path.mkdir")
     @patch.dict("os.environ", {"XDG_CACHE_HOME": "   "}, clear=False)
-    def test_falls_back_to_home_when_xdg_whitespace(self, mock_mkdir):
+    def test_falls_back_to_home_when_xdg_whitespace(self, mock_mkdir, mock_sys):
+        mock_sys.platform = "linux"
         result = get_pyfc_cache_path()
         self.assertEqual(result, Path.home() / ".cache" / "pyfc" / "cache.db")
 
+    @patch("pyfc.config.sys")
     @patch("pyfc.config.Path.mkdir")
     @patch.dict("os.environ", {}, clear=False)
-    def test_falls_back_to_home_when_xdg_unset(self, mock_mkdir):
+    def test_falls_back_to_home_when_xdg_unset(self, mock_mkdir, mock_sys):
         import os
 
+        mock_sys.platform = "linux"
         os.environ.pop("XDG_CACHE_HOME", None)
         result = get_pyfc_cache_path()
         self.assertEqual(result, Path.home() / ".cache" / "pyfc" / "cache.db")
